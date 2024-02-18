@@ -1,0 +1,26 @@
+{
+	"extends": "@tsconfig/recommended/tsconfig.json",
+	"ts-node": {
+		"require": ["tsconfig-paths/register"],
+		"files": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["**/*.test.ts"],
+	"compilerOptions": {
+		"outDir": "dist",
+		"baseUrl": ".",
+		"paths": {
+			"symon/*": ["./src/*"],
+			"symon": ["./src/index.ts"],
+			"~/*": ["./src/*"],
+			"~": ["./src/index.ts"]
+		},
+		"typeRoots": ["./node_modules/@types"],
+		"lib": ["ESNext"],
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+		"noImplicitOverride": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true
+	}
+}
