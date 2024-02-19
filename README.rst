@@ -5,8 +5,8 @@ Symon |status|
 Simple framework for building smart chatbots.
 
 .. |status| 
-	image:: https://github.com/sweetpalma/petlyuryk/workflows/Petlyuryk%20Neural%20CI/badge.svg
-	:target: https://github.com/sweetpalma/petlyuryk/actions/workflows/neural.yaml
+	image:: https://github.com/sweetpalma/symon/actions/workflows/build.yml/badge.svg
+	:target: https://github.com/sweetpalma/symon/actions/workflows/build.yml
 
 Installation (GitHub)
 =====================
