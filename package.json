@@ -5,14 +5,14 @@
 	"license": "MIT",
 	"repository": "https://github.com/sweetpalma/symon",
 	"description": "Simple framework for building smart chatbots.",
-	"main": "index.js",
-	"types": "index.d.ts",
+	"main": "./src/index.js",
+	"types": "./src/index.d.ts",
 	"scripts": {
 		"prepare": "husky",
 		"example": "cd examples && ts-node-dev --quiet -r tsconfig-paths/register --",
-		"build": "tsc --declaration",
+		"build": "tsc --declaration -p tsconfig.build.json",
 		"test-watch": "vitest watch --reporter verbose --dir ./src",
-		"test": "vitest run --reporter verbose --typecheck.enabled --dir ./src",
+		"test": "vitest run --reporter verbose --dir ./src",
 		"typecheck": "tsc --noEmit",
 		"format-check": "prettier '**/*.{vue,ts,md,scss,yml,json}' --check",
 		"format": "prettier '**/*.{vue,ts,md,scss,yml,json}' --write"
