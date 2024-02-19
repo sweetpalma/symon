@@ -20,5 +20,5 @@ Running examples
 
 .. code ::
 
-	npm run example english
-	npm run example ukrainian
+	npm run example en
+	npm run example uk
