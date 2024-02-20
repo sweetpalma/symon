@@ -2,8 +2,9 @@
  * Part of a Symon SDK, all rights reserved.
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
-import { sample } from 'lodash';
 import AsyncLock from 'async-lock';
+import { sample } from 'lodash';
+import { JsonObject } from 'type-fest';
 import { Routine } from './routine';
 import {
 	Entity,
@@ -47,12 +48,13 @@ export interface BotResponse {
 }
 
 /**
- * Bot handler context.
+ * Bot context.
  */
 export interface BotContext {
 	req: BotRequest;
 	classifications: Array<ClassifierMatch>;
 	entities: Array<EntityMatch>;
+	store: JsonObject;
 	ask: (res: Partial<BotResponse>) => Promise<BotRequest>;
 	say: (res: Partial<BotResponse>) => Promise<void>;
 }
@@ -110,6 +112,7 @@ export class Bot {
 	private middlewares: Array<BotMiddleware> = [];
 	private docs = new Map<string, BotDocument>();
 
+	private stores = new Map<string, JsonObject>();
 	private convos = new Map<string, BotRoutine>();
 	private convoLock = new AsyncLock();
 
@@ -151,6 +154,10 @@ export class Bot {
 		this.docs.set(doc.intent, doc);
 	}
 
+	/**
+	 * Adds new bot middlware.
+	 * @param middleware - Middleware to run after the classification.
+	 */
 	public addMiddleware(middleware: BotMiddleware) {
 		this.middlewares.push(middleware);
 	}
@@ -161,6 +168,24 @@ export class Bot {
 	 */
 	public train() {
 		this.classifier.train();
+	}
+
+	/**
+	 * Reads user store.
+	 * @param id - User ID.
+	 * @returns Store.
+	 */
+	public getStore(id: string) {
+		return this.stores.get(id) ?? {};
+	}
+
+	/**
+	 * Writes user store.
+	 * @param id - User ID.
+	 * @param store - Store to write.
+	 */
+	public setStore(id: string, store: JsonObject) {
+		this.stores.set(id, store);
 	}
 
 	/**
@@ -202,6 +227,7 @@ export class Bot {
 	private async runClassifier(req: BotRequest): Promise<BotResponse> {
 		const { entities, template } = this.entityManager.process(req.text);
 		const classifications = await this.classifier.classifyText(template);
+		const userId = req.user.id;
 
 		// Step 1: Determine intent.
 		const headScore = classifications[0]?.score ?? 0;
@@ -222,20 +248,23 @@ export class Bot {
 			entities,
 		};
 
-		// Step 3A: Continue an existing conversation.
-		const convoId = req.user.id;
-		const convo = this.convos.get(convoId);
+		// Step 3: Determine current user store and active conversation.
+		const convo = this.convos.get(userId);
+		const store = this.stores.get(userId) ?? {};
+		this.stores.set(userId, store);
+
+		// Step 4A: Continue an existing conversation.
 		if (convo) {
 			const convoRes = await convo.process(req);
 			if (convoRes && !convo.isDone()) {
 				return convoRes;
 			} else {
-				this.convos.delete(convoId);
+				this.convos.delete(userId);
 				return this.runClassifier(req);
 			}
 		}
 
-		// Step 3B: Start a new conversation.
+		// Step 4B: Start a new conversation.
 		else if (doc?.handler) {
 			// prettier-ignore
 			const routine: BotRoutine = new Routine((ctx) =>
@@ -243,16 +272,17 @@ export class Bot {
 					req,
 					classifications,
 					entities,
+					store,
 					say: async (upd) => await ctx.yield({ ...res, ...upd }) && undefined,
 					ask: async (upd) => await ctx.yield({ ...res, ...upd }),
 				})
 			);
-			this.convos.set(convoId, routine);
+			this.convos.set(userId, routine);
 			const handlerRes = await routine.process(req);
 			return handlerRes || res;
 		}
 
-		// Step 3C: Return a simple response.
+		// Step 4C: Return a simple response.
 		else {
 			return res;
 		}

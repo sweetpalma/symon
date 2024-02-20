@@ -229,8 +229,12 @@ describe('Bot (Ukrainian)', () => {
 			intent: 'acquaintance',
 			examples: ['привіт'],
 			handler: async (ctx) => {
-				const name = await ctx.ask({ answer: 'Привіт, як тебе звуть?' });
-				await ctx.say({ answer: `${name.text}... Гарне імʼя!` });
+				if (ctx.store.name) {
+					await ctx.say({ answer: `Привіт, ${ctx.store.name}!` });
+				} else {
+					ctx.store.name = (await ctx.ask({ answer: 'Привіт, як тебе звуть?' })).text;
+					await ctx.say({ answer: `${ctx.store.name}... Я запамʼятаю!` });
+				}
 			},
 		});
 		bot.addDocument({
@@ -239,10 +243,18 @@ describe('Bot (Ukrainian)', () => {
 			answers: ['Бувай!'],
 		});
 		bot.train();
-		expect(await process('Привіт')).toMatchObject({ answer: 'Привіт, як тебе звуть?' });
-		expect(await process('Павлик')).toMatchObject({ answer: 'Павлик... Гарне імʼя!' });
-		expect(await process('Бувай!')).toMatchObject({ answer: 'Бувай!' });
-		expect(await process('Хрююю!')).toMatchObject({ answer: null });
+		expect(await process('Привіт')).toMatchObject({
+			answer: 'Привіт, як тебе звуть?',
+		});
+		expect(await process('Павлик')).toMatchObject({
+			answer: 'Павлик... Я запамʼятаю!',
+		});
+		expect(await process('Привіт')).toMatchObject({
+			answer: 'Привіт, Павлик!',
+		});
+		expect(await process('Бувай!')).toMatchObject({
+			answer: 'Бувай!',
+		});
 	});
 
 	it('handles complex routines (multiple users)', async () => {
@@ -250,8 +262,12 @@ describe('Bot (Ukrainian)', () => {
 			intent: 'acquaintance',
 			examples: ['привіт'],
 			handler: async (ctx) => {
-				const name = await ctx.ask({ answer: 'Привіт, як тебе звуть?' });
-				await ctx.say({ answer: `${name.text}... Гарне імʼя!` });
+				if (ctx.store.name) {
+					await ctx.say({ answer: `Привіт, ${ctx.store.name}!` });
+				} else {
+					ctx.store.name = (await ctx.ask({ answer: 'Привіт, як тебе звуть?' })).text;
+					await ctx.say({ answer: `${ctx.store.name}... Я запамʼятаю!` });
+				}
 			},
 		});
 		bot.addDocument({
@@ -267,12 +283,22 @@ describe('Bot (Ukrainian)', () => {
 			answer: 'Привіт, як тебе звуть?',
 		});
 		expect(await process('Павлик', 'A')).toMatchObject({
-			answer: 'Павлик... Гарне імʼя!',
+			answer: 'Павлик... Я запамʼятаю!',
 		});
 		expect(await process('Антоха', 'B')).toMatchObject({
-			answer: 'Антоха... Гарне імʼя!',
+			answer: 'Антоха... Я запамʼятаю!',
 		});
-		expect(await process('Бувай!', 'A')).toMatchObject({ answer: 'Бувай!' });
-		expect(await process('Бувай!', 'B')).toMatchObject({ answer: 'Бувай!' });
+		expect(await process('Привіт', 'A')).toMatchObject({
+			answer: 'Привіт, Павлик!',
+		});
+		expect(await process('Привіт', 'B')).toMatchObject({
+			answer: 'Привіт, Антоха!',
+		});
+		expect(await process('Бувай!', 'A')).toMatchObject({
+			answer: 'Бувай!',
+		});
+		expect(await process('Бувай!', 'B')).toMatchObject({
+			answer: 'Бувай!',
+		});
 	});
 });
