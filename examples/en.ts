@@ -46,6 +46,6 @@ bot.addMiddleware((req, res) => {
 	}
 });
 
-const cli = new Shell({ bot });
+const cli = new Shell({ bot, debug: true });
 bot.train();
 cli.start();

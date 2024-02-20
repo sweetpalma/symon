@@ -19,10 +19,12 @@ export interface ShellOptions {
  * Bot shell.
  */
 export class Shell {
+	private debug: boolean;
 	public readonly cli: Interface;
 	public readonly bot: Bot;
 
-	constructor(private readonly opts: ShellOptions) {
+	constructor(opts: ShellOptions) {
+		this.debug = opts.debug ?? false;
 		this.bot = opts.bot;
 		this.cli = createInterface({
 			output: opts.output ?? process.stdout,
@@ -55,9 +57,15 @@ export class Shell {
 				user: { id: 'user' },
 				text,
 			};
-			const { answer } = await this.bot.process(req);
-			console.log(`Bot> ${answer}`);
-			console.log();
+			const { answer, ...cls } = await this.bot.process(req);
+			if (this.debug) {
+				console.log(`Bot> ${answer}`);
+				console.log();
+			} else {
+				console.log(`Bot> ${answer}`);
+				console.log(JSON.stringify(cls, undefined, 2));
+				console.log();
+			}
 		}
 	}
 }
