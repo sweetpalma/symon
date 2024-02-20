@@ -58,7 +58,7 @@ export class Shell {
 				text,
 			};
 			const { answer, ...cls } = await this.bot.process(req);
-			if (this.debug) {
+			if (!this.debug) {
 				console.log(`Bot> ${answer}`);
 				console.log();
 			} else {
