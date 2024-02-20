@@ -3,12 +3,19 @@
 	"version": "0.1.0",
 	"author": "SweetPalma",
 	"license": "MIT",
-	"repository": "https://github.com/sweetpalma/symon",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sweetpalma/symon.git"
+	},
 	"description": "Simple framework for building smart chatbots.",
-	"main": "./src/index.js",
-	"types": "./src/index.d.ts",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"./dist"
+	],
 	"scripts": {
 		"prepare": "husky",
+		"prepack": "npm run build",
 		"example": "cd examples && ts-node-dev --quiet -r tsconfig-paths/register --",
 		"build": "tsc --declaration -p tsconfig.build.json",
 		"test-watch": "vitest watch --reporter verbose --dir ./src",
