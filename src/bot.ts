@@ -57,6 +57,9 @@ export interface BotContext {
 	say: (res: Partial<BotResponse>) => Promise<void>;
 }
 
+/**
+ * Bot middleware.
+ */
 export interface BotMiddleware {
 	(req: BotRequest, res: BotResponse, stop: () => void): void | Promise<void>;
 }
@@ -85,6 +88,7 @@ export interface BotOptions {
 	entityManager?: EntityManagerOptions;
 	classifier?: ClassifierOptions;
 	minThreshold?: number;
+	minDeviation?: number;
 }
 
 /**
@@ -100,6 +104,9 @@ export class BotError extends Error {
  * Bot.
  */
 export class Bot {
+	public entityManager: EntityManager;
+	public classifier: Classifier;
+
 	private middlewares: Array<BotMiddleware> = [];
 	private docs = new Map<string, BotDocument>();
 
@@ -107,14 +114,14 @@ export class Bot {
 	private convoLock = new AsyncLock();
 
 	public minThreshold: number;
-	public entityManager: EntityManager;
-	public classifier: Classifier;
+	public minDeviation: number;
 
 	constructor(opts: BotOptions = {}) {
 		const stemmer = opts.stemmer ?? PorterStemmer;
 		this.entityManager = new EntityManager({ stemmer, ...opts.entityManager });
 		this.classifier = new Classifier({ stemmer, ...opts.classifier });
 		this.minThreshold = opts.minThreshold ?? 0.75;
+		this.minDeviation = opts.minDeviation ?? 0.05;
 	}
 
 	/**
@@ -197,8 +204,13 @@ export class Bot {
 		const classifications = await this.classifier.classifyText(template);
 
 		// Step 1: Determine intent.
-		const [head] = classifications;
-		const intent = head && head.score >= this.minThreshold ? head.intent : null;
+		const headScore = classifications[0]?.score ?? 0;
+		const nextScore = classifications[1]?.score ?? 0;
+		const deviation = headScore - nextScore;
+		const intent =
+			headScore >= this.minThreshold && deviation >= this.minDeviation
+				? classifications[0]!.intent
+				: null;
 
 		// Step 2: Build a basic response.
 		const doc = intent ? this.docs.get(intent) : undefined;
