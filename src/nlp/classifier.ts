@@ -6,8 +6,8 @@ import {
 	ClassifierBase,
 	ApparatusClassification,
 	LogisticRegressionClassifier,
-	Stemmer,
 	PorterStemmer,
+	Stemmer,
 } from 'natural';
 import { round, groupBy, meanBy, sumBy } from 'lodash';
 import { queueAsPromised as Queue, promise as createQueue } from 'fastq';
@@ -95,6 +95,9 @@ export class Classifier {
 	 */
 	public addDocument(doc: ClassifierDocument) {
 		const originalCount = this.classifier.docs.length;
+		if (doc.examples.length === 0) {
+			throw new ClassifierError('No examples were provided.');
+		}
 		for (const example of doc.examples) {
 			const language = doc.language ?? this.language.process(example).language;
 			const label = this.buildLabel(doc.intent, language);

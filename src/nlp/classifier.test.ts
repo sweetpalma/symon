@@ -7,12 +7,17 @@ import { Classifier } from './classifier';
 import { PorterStemmerUk } from './stemmer';
 
 describe('Classifier', () => {
-	it('fails to train a classifier without documents', async () => {
+	it('fails to train a classifier without documents', () => {
 		const msg = 'Empty classifier could not be trained.';
 		expect(() => new Classifier().train()).toThrow(msg);
 	});
 
-	it('fails to process a message using an untrained classifier', async () => {
+	it('fails to accept an empty document', () => {
+		const msg = 'No examples were provided.';
+		expect(() => new Classifier().addDocument({ intent: '', examples: [] })).toThrow(msg);
+	});
+
+	it('fails to process a text using an untrained classifier', async () => {
 		const msg = 'Classifier is not trained.';
 		expect(() => new Classifier().classify('test')).rejects.toThrow(msg);
 	});
