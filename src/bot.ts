@@ -51,6 +51,7 @@ export interface BotResponse {
  * Bot context.
  */
 export interface BotContext {
+	bot: Bot;
 	req: BotRequest;
 	classifications: Array<ClassifierMatch>;
 	entities: Array<EntityMatch>;
@@ -63,14 +64,14 @@ export interface BotContext {
  * Bot middleware.
  */
 export interface BotMiddleware {
-	(req: BotRequest, res: BotResponse, stop: () => void): void | Promise<void>;
+	(this: Bot, req: BotRequest, res: BotResponse, stop: () => void): void | Promise<void>;
 }
 
 /**
  * Bot handler.
  */
 export interface BotHandler {
-	(ctx: BotContext): Promise<void>;
+	(this: Bot, ctx: BotContext): Promise<void>;
 }
 
 /**
@@ -210,7 +211,7 @@ export class Bot {
 	private async runMiddleware(req: BotRequest, res: BotResponse) {
 		for (const middleware of this.middlewares) {
 			let stop = false;
-			await middleware(req, res, () => {
+			await middleware.call(this, req, res, () => {
 				stop = true;
 			});
 			if (stop) {
@@ -268,7 +269,8 @@ export class Bot {
 		else if (doc?.handler) {
 			// prettier-ignore
 			const routine: BotRoutine = new Routine((ctx) =>
-				doc.handler!({
+				doc.handler!.call(this, {
+					bot: this,
 					req,
 					classifications,
 					entities,
@@ -282,7 +284,7 @@ export class Bot {
 			return handlerRes || res;
 		}
 
-		// Step 4C: Return a simple response.
+		// Step 4C: Return a basic response.
 		else {
 			return res;
 		}
