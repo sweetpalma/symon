@@ -1,3 +1,5 @@
+![cover](symon.png)
+
 # Symon
 
 ![ci][ci-url]
@@ -27,7 +29,7 @@ import { Bot, PorterStemmerUk as stemmer } from 'symon';
 const bot = new Bot({ stemmer });
 ```
 
-### Natural Language Understanding (NLU)
+### Natural Language Understanding
 
 ```typescript
 bot.addDocument({
@@ -47,25 +49,25 @@ bot.addDocument({
 
 ```typescript
 bot.addEntity({
-   label: 'insult',
-   options: ['stupid', 'silly'],
+  label: 'insult',
+  options: ['stupid', 'silly'],
 });
 
 bot.addEntity({
-   label: 'praise',
-   options: ['smart', 'sweet'],
+  label: 'praise',
+  options: ['smart', 'sweet'],
 });
 
 bot.addDocument({
-    intent: 'chatter/insult',
-    examples: ['you are %insult%', '%insult%'],
-    answers: ['You make me sad...'],
+  intent: 'chatter/insult',
+  examples: ['you are %insult%', '%insult%'],
+  answers: ['You make me sad...'],
 });
 
 bot.addDocument({
-    intent: 'chatter/praise',
-    examples: ['you are %praise%', '%insult%'],
-    answers: ['Thanks!'],
+  intent: 'chatter/praise',
+  examples: ['you are %praise%', '%insult%'],
+  answers: ['Thanks!'],
 });
 ```
 
