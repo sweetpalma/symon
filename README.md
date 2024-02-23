@@ -1,9 +1,11 @@
-![cover](symon.png)
+![banner](banner.png)
 
 # Symon
 
-![ci][ci-url]
-[![npm version][npm-badge]][npm-url]
+[![npm-badge]][npm-url]
+[![ci-badge]][ci-url]
+[![license-badge]][license-url]
+[![typescript-badge]][typescript-url]
 
 Minimalistic chatbot framework for humans.
 
@@ -108,6 +110,11 @@ shell.start();
 
 Symon is licensed under the MIT license.
 
-[ci-url]: https://github.com/sweetpalma/symon/actions/workflows/main.yml/badge.svg
-[npm-badge]: https://badge.fury.io/js/symon.svg
-[npm-url]: https://badge.fury.io/js/symon
+[typescript-badge]: https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg
+[typescript-url]: http://www.typescriptlang.org/
+[ci-badge]: https://img.shields.io/github/actions/workflow/status/sweetpalma/symon/main.yml?logo=github&label=CI
+[ci-url]: https://github.com/sweetpalma/symon/actions/workflows/main.yml
+[npm-badge]: https://img.shields.io/npm/v/symon?logo=npm
+[npm-url]: https://www.npmjs.com/package/symon
+[license-badge]: https://img.shields.io/npm/l/symon
+[license-url]: https://github.com/sweetpalma/symon/blob/master/LICENSE
