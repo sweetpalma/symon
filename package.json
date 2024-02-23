@@ -8,6 +8,19 @@
 		"url": "git+https://github.com/sweetpalma/symon.git"
 	},
 	"description": "Simple framework for building smart chatbots.",
+	"keywords": [
+		"chatbot",
+		"framework",
+		"bot",
+		"nlp",
+		"nlu",
+		"ner",
+		"classifier",
+		"sentiment analysis",
+		"natural language understanding",
+		"natural language processing",
+		"named entity extraction"
+	],
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"files": [
