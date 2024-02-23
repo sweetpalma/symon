@@ -32,7 +32,7 @@ const bot = new Bot({ stemmer });
 ```typescript
 bot.addDocument({
   intent: 'chatter/greeting',
-  examples: ['hello', 'hi],
+  examples: ['hello', 'hi'],
   answers: ['Hello!'],
 });
 
@@ -48,12 +48,12 @@ bot.addDocument({
 ```typescript
 bot.addEntity({
    label: 'insult',
-   examples: ['stupid', 'silly'],
+   options: ['stupid', 'silly'],
 });
 
 bot.addEntity({
    label: 'praise',
-   examples: ['smart', 'sweet'],
+   options: ['smart', 'sweet'],
 });
 
 bot.addDocument({
