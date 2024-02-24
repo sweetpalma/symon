@@ -10,21 +10,21 @@ import { Bot, BotRequest } from './bot';
  */
 export interface ShellOptions {
 	bot: Bot;
+	debug?: boolean;
 	output?: Parameters<typeof createInterface>[0]['output'];
 	input?: Parameters<typeof createInterface>[0]['input'];
-	debug?: boolean;
+	promptUsr?: string;
+	promptBot?: string;
 }
 
 /**
  * Bot shell.
  */
 export class Shell {
-	private debug: boolean;
 	public readonly cli: Interface;
 	public readonly bot: Bot;
 
-	constructor(opts: ShellOptions) {
-		this.debug = opts.debug ?? false;
+	constructor(private readonly opts: ShellOptions) {
 		this.bot = opts.bot;
 		this.cli = createInterface({
 			output: opts.output ?? process.stdout,
@@ -51,18 +51,20 @@ export class Shell {
 		if (!this.bot.isTrained) {
 			this.bot.train();
 		}
+		const promptUsr = this.opts.promptUsr ?? 'Human>';
+		const promptBot = this.opts.promptBot ?? 'Symon>';
 		while (true) {
-			const text = await this.prompt(`User> `);
+			const text = await this.prompt(promptUsr + ' ');
 			const req: BotRequest = {
 				user: { id: 'user' },
 				text,
 			};
 			const { answer, ...cls } = await this.bot.process(req);
-			if (!this.debug) {
-				console.log(`Bot> ${answer}`);
+			if (!this.opts.debug) {
+				console.log([promptBot, answer].join(' '));
 				console.log();
 			} else {
-				console.log(`Bot> ${answer}`);
+				console.log([promptBot, answer].join(' '));
 				console.log(JSON.stringify(cls, undefined, 2));
 				console.log();
 			}
