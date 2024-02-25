@@ -55,10 +55,25 @@
 		"lint-staged": "^15.2.2",
 		"prettier": "^2.8.8",
 		"ts-node-dev": "^2.0.0",
-		"type-fest": "^4.10.2"
+		"type-fest": "^4.10.2",
+		"typedoc": "^0.25.8"
 	},
 	"lint-staged": {
 		"**/*.{md,scss,yml,json}": "prettier --write",
 		"**/*.{ts,vue}": "prettier --write"
+	},
+	"typedocOptions": {
+		"name": "Symon",
+		"entryPointStrategy": "expand",
+		"entryPoints": [
+			"./src"
+		],
+		"exclude": [
+			"**/*.test.ts",
+			"**/index.ts"
+		],
+		"excludeExternals": true,
+		"excludePrivate": true,
+		"excludeInternal": true
 	}
 }
