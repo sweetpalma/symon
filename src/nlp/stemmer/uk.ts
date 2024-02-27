@@ -3,8 +3,8 @@
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
 import { Stemmer as NaturalStemmer } from 'natural';
-import { WordTokenizer as Tokenizer } from './tokenizer';
-import defaultStopwords from '../data/stopwords.json';
+import { WordTokenizer as Tokenizer } from '../tokenizer';
+import defaultStopwords from '../data/uk-stopwords.json';
 
 // prettier-ignore
 export const STEMMER_RVRE = (

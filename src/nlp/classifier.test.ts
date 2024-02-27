@@ -4,7 +4,6 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Classifier } from './classifier';
-import { PorterStemmerUk } from './stemmer';
 
 describe('Classifier', () => {
 	it('fails to train a classifier without documents', () => {
@@ -31,7 +30,9 @@ describe('Classifier (English)', () => {
 	};
 
 	beforeEach(() => {
-		classifier = new Classifier();
+		classifier = new Classifier({
+			languages: ['en'],
+		});
 	});
 
 	it('classifies different intents', async () => {
@@ -56,12 +57,10 @@ describe('Classifier (English)', () => {
 		classifier.addDocument({
 			intent: 'insult/bot',
 			examples: ['you are bad', 'you are an idiot'],
-			language: 'uk',
 		});
 		classifier.addDocument({
 			intent: 'insult/self',
 			examples: ['i am bad', 'i am an idiot'],
-			language: 'uk',
 		});
 		classifier.train();
 		expect(await process('You are bad')).toMatchObject({ intent: 'insult/bot' });
@@ -135,7 +134,7 @@ describe('Classifier (Ukrainian)', () => {
 
 	beforeEach(() => {
 		classifier = new Classifier({
-			stemmer: new PorterStemmerUk(),
+			languages: ['uk'],
 		});
 	});
 
@@ -226,5 +225,35 @@ describe('Classifier (Ukrainian)', () => {
 				language: 'uk',
 			}),
 		]);
+	});
+});
+
+describe('Classifier (Multi)', () => {
+	let classifier: Classifier;
+	const process = async (input: string) => {
+		const [top] = await classifier.classify(input);
+		return top;
+	};
+
+	beforeEach(() => {
+		classifier = new Classifier({
+			languages: ['uk', 'ru'],
+		});
+	});
+
+	it('classifies same intents for different languages', async () => {
+		classifier.addDocument({
+			language: 'ru',
+			intent: 'greeting',
+			examples: ['привет'],
+		});
+		classifier.addDocument({
+			language: 'uk',
+			intent: 'greeting',
+			examples: ['привіт'],
+		});
+		classifier.train();
+		expect(await process('Привіт')).toMatchObject({ language: 'uk' });
+		expect(await process('Привет')).toMatchObject({ language: 'ru' });
 	});
 });

@@ -3,12 +3,14 @@
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
 import { describe, it, expect } from 'vitest';
-import testCases from '../data/test-stems.json';
-import { PorterStemmerUk as stemmer } from '.';
+import testCases from '../data/uk-stems.json';
+import { PorterStemmerUk } from './uk';
 
 const ACCEPTABLE_PASS_RATE = 0.95;
 
 describe('Stemmer (Ukrainian)', () => {
+	const stemmer = new PorterStemmerUk();
+
 	it('starts the stemming after the first vowel', () => {
 		const shortWord = 'рим';
 		expect(stemmer.stem(shortWord)).toBe(shortWord);

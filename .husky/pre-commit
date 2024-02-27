@@ -1,2 +1,3 @@
 npx --no-install lint-staged
-npm test
+npm run test
+npm run todo

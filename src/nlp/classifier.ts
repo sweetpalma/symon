@@ -2,16 +2,10 @@
  * Part of a Symon SDK, all rights reserved.
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
-import {
-	ClassifierBase,
-	ApparatusClassification,
-	LogisticRegressionClassifier,
-	PorterStemmer,
-	Stemmer,
-} from 'natural';
 import { round, groupBy, meanBy, sumBy } from 'lodash';
+import { ApparatusClassification, LogisticRegressionClassifier } from 'natural';
 import { queueAsPromised as Queue, promise as createQueue } from 'fastq';
-import { Language } from './language';
+import { MultiStemmer } from './stemmer';
 
 /**
  * Classification.
@@ -35,8 +29,7 @@ export interface ClassifierDocument {
  * Classifier options.
  */
 export interface ClassifierOptions {
-	stemmer?: Stemmer;
-	classifier?: ClassifierBase;
+	languages?: Array<string>;
 	keepStops?: boolean;
 }
 
@@ -50,18 +43,18 @@ export class ClassifierError extends Error {
 }
 
 /**
- * Natural Language Understanding (NLU).
+ * Multi-language Classifier.
  */
 export class Classifier {
-	private language = new Language();
-	private classifier: ClassifierBase;
+	private stemmer: MultiStemmer;
+	private classifier: LogisticRegressionClassifier;
 	private classifierQueue: Queue<string, Array<ApparatusClassification>>;
-	private classifierReady = false;
+	private classifierReady: boolean = false;
 
 	// prettier-ignore
 	constructor(opts: ClassifierOptions = {}) {
-		const stemmer = opts.stemmer ?? PorterStemmer;
-		this.classifier = opts.classifier ?? new LogisticRegressionClassifier(stemmer);
+		this.stemmer = new MultiStemmer({ languages: opts.languages });
+		this.classifier = new LogisticRegressionClassifier(this.stemmer);
 		this.classifier.setOptions({ keepStops: opts.keepStops ?? true });
 		this.classifierQueue = createQueue((input) => Promise.resolve().then(() => {
 			return this.classifier.getClassifications(input);
@@ -69,21 +62,23 @@ export class Classifier {
 	}
 
 	/**
-	 * Classifier stemmer.
+	 * Supported languages.
 	 */
-	public get stemmer() {
-		return this.classifier.stemmer;
+	public get languages() {
+		return this.stemmer.languages;
 	}
 
 	/**
-	 * Classifier document count check.
+	 * Emptiness status.
+	 * @remarks Empty classifier could not be trained.
 	 */
 	public get isEmpty() {
 		return this.classifier.docs.length < 1;
 	}
 
 	/**
-	 * Classifier training status.
+	 * Training status.
+	 * @remarks Untrained classifier can't be used.
 	 */
 	public get isTrained() {
 		return this.classifierReady;
@@ -99,18 +94,18 @@ export class Classifier {
 			throw new ClassifierError('No examples were provided.');
 		}
 		for (const example of doc.examples) {
-			const language = doc.language ?? this.language.process(example).language;
+			const language = this.stemmer.detectLanguage(example);
 			const label = this.buildLabel(doc.intent, language);
 			this.classifier.addDocument(example, label);
 		}
 		if (originalCount === this.classifier.docs.length) {
-			throw new ClassifierError('No new documents were added. Bad tokenizer?');
+			throw new ClassifierError('No new documents were added. Invalid language?');
 		}
 	}
 
 	/**
 	 * Trains the classifier.
-	 * @remarks Running this method may take some time.
+	 * @remarks Running this method is synchronous and may take some time.
 	 */
 	public train() {
 		if (this.isEmpty) {
@@ -126,27 +121,27 @@ export class Classifier {
 	 * @param input - Sample to classify.
 	 * @returns List of matching classifications.
 	 */
-	public async classify(input: string) {
+	public async classify(text: string) {
 		if (!this.isTrained) {
 			throw new ClassifierError('Classifier is not trained.');
 		}
 
-		// Step 1: Perform basic classification.
-		const classifications = (await this.classifierQueue.push(input))
+		// Step 1: Classify, then filter out meaningless classifications.
+		const classifications = (await this.classifierQueue.push(text))
 			.map<ClassifierMatch>((cls) => {
 				const score = round(cls.value, 2);
 				return { ...this.parseLabel(cls.label), score };
 			})
 			.filter((cls) => {
-				return cls.score > 0;
+				return cls.score >= 0.5;
 			});
 
-		// Step 2A: Return single classification.
+		// Step 3A: Return single classification.
 		if (classifications.length <= 1) {
 			return classifications;
 		}
 
-		// Step 2B: Remove mean classifications and return.
+		// Step 3B: Remove mean classifications and return.
 		const mean = meanBy(classifications, 'score');
 		return classifications.filter((cls) => {
 			return cls.score > mean;
@@ -158,10 +153,10 @@ export class Classifier {
 	 * @param input - Sample to classify.
 	 * @returns List of matching classifications.
 	 */
-	public async classifyText(input: string) {
-		const sentences = input.split(/[!?.]/).filter((str) => str.trim().length > 0);
+	public async classifyText(text: string) {
+		const sentences = text.split(/[!?.]/).filter((str) => str.trim().length > 0);
 		if (sentences.length <= 1) {
-			return this.classify(input);
+			return this.classify(text);
 		}
 
 		// Step 1: Classify each sentence separately.
@@ -173,11 +168,11 @@ export class Classifier {
 				return sentenceClassifications.length > 0;
 			})
 			.reduce((acc, curr) => {
-				const grouped = groupBy([...acc, ...curr], (cls) => {
+				const groupedByLabel = groupBy([...acc, ...curr], (cls) => {
 					return this.buildLabel(cls.intent, cls.language);
 				});
-				return Object.entries(grouped).map(([label, sentenceClassifications]) => {
-					const score = sumBy(sentenceClassifications, 'score');
+				return Object.entries(groupedByLabel).map(([label, groupedClassifications]) => {
+					const score = sumBy(groupedClassifications, 'score');
 					return { ...this.parseLabel(label), score };
 				});
 			}, []);
@@ -196,6 +191,7 @@ export class Classifier {
 
 	/**
 	 * Builds an internal classifier label.
+	 * @internal
 	 * @param intent - Document intent.
 	 * @param language - Document language.
 	 * @returns Document label.
@@ -206,6 +202,7 @@ export class Classifier {
 
 	/**
 	 * Parses an internal classifier label.
+	 * @internal
 	 * @param label - Document label.
 	 * @returns Document intent and language.
 	 */

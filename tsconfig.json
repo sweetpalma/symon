@@ -17,8 +17,8 @@
 		},
 		"typeRoots": ["./node_modules/@types"],
 		"lib": ["ESNext"],
+		"exactOptionalPropertyTypes": false,
 		"noUncheckedIndexedAccess": true,
-		"exactOptionalPropertyTypes": true,
 		"noImplicitOverride": true,
 		"resolveJsonModule": true,
 		"esModuleInterop": true

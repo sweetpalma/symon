@@ -2,30 +2,34 @@
  * Part of a Symon SDK, all rights reserved.
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
-import { Bot, Shell, PorterStemmerUk } from 'symon';
+import { Bot, Shell, EnumEntity } from 'symon';
 
 const bot = new Bot({
-	stemmer: PorterStemmerUk,
+	languages: ['uk'],
 });
 
-bot.addEntity({
-	label: 'insult',
-	options: ['ідіот', 'мудак', 'дурень'],
-});
+bot.addEntity(
+	new EnumEntity({
+		label: 'praise',
+		options: ['хороший', 'сонечко', 'добрий'],
+	})
+);
 
-bot.addEntity({
-	label: 'praise',
-	options: ['хороший', 'сонечко'],
-});
+bot.addEntity(
+	new EnumEntity({
+		label: 'insult',
+		options: ['ідіот', 'мудак', 'дурень'],
+	})
+);
 
 bot.addDocument({
-	intent: 'chatter/hello',
+	intent: 'chatter/greeting',
 	examples: ['привіт', 'хай', 'добрий вечір', 'добрий ранок'],
 	answers: ['Привіт!'],
 });
 
 bot.addDocument({
-	intent: 'chatter/bye',
+	intent: 'chatter/parting',
 	examples: ['бувай', 'прощавай'],
 	answers: ['Бувай!'],
 });
@@ -48,6 +52,5 @@ bot.addMiddleware((req, res) => {
 	}
 });
 
-const cli = new Shell({ bot, debug: true });
-bot.train();
+const cli = new Shell({ bot });
 cli.start();

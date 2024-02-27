@@ -2,30 +2,36 @@
  * Part of a Symon SDK, all rights reserved.
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
-import { Bot, Shell } from 'symon';
+import { Bot, EnumEntity, Shell } from 'symon';
 
-const bot = new Bot();
-
-bot.addEntity({
-	label: 'insult',
-	options: ['retarded', 'stupid', 'bad'],
+const bot = new Bot({
+	languages: ['en'],
 });
 
-bot.addEntity({
-	label: 'praise',
-	options: ['good', 'nice'],
-});
+bot.addEntity(
+	new EnumEntity({
+		label: 'praise',
+		options: ['smart', 'sweet', 'good'],
+	})
+);
+
+bot.addEntity(
+	new EnumEntity({
+		label: 'insult',
+		options: ['stupid', 'silly', 'bad'],
+	})
+);
 
 bot.addDocument({
-	intent: 'chatter/hello',
-	examples: ['hello', 'hi', 'good afternoon', 'good morning', 'good evening'],
+	intent: 'chatter/greeting',
+	examples: ['hello', 'hi', 'good afternoon', 'good evening'],
 	answers: ['Hello!'],
 });
 
 bot.addDocument({
-	intent: 'chatter/bye',
-	examples: ['bye', 'goodbye'],
-	answers: ['Bye!'],
+	intent: 'chatter/parting',
+	examples: ['goodbye', 'bye'],
+	answers: ['Bye, asshole.'],
 });
 
 bot.addDocument({
@@ -46,6 +52,5 @@ bot.addMiddleware((req, res) => {
 	}
 });
 
-const cli = new Shell({ bot, debug: true });
-bot.train();
+const cli = new Shell({ bot });
 cli.start();

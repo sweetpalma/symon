@@ -7,6 +7,8 @@
 [![license-badge]][license-url]
 [![typescript-badge]][typescript-url]
 
+🇬🇧 🇺🇦 🇩🇪 🇫🇷 🇪🇸 🇵🇹 🇮🇹 🇳🇱 🇳🇴 🇸🇪 🇮🇷 🇯🇵 🇮🇩 🇷🇺
+
 Minimalistic chatbot framework for humans.
 
 ## Getting Started
@@ -21,14 +23,10 @@ npm install symon
 ###  Configuration
 
 ```typescript
-// English 
 import { Bot } from 'symon';
-const bot = new Bot();
-
-// Other languages may require a specific stemmer:
-// https://naturalnode.github.io/natural/stemmers.html
-import { Bot, PorterStemmerUk as stemmer } from 'symon';
-const bot = new Bot({ stemmer });
+const bot = new Bot({
+  languages: ['en'],
+});
 ```
 
 ### Natural Language Understanding
@@ -50,15 +48,21 @@ bot.addDocument({
 ### Named Entity Recognition
 
 ```typescript
-bot.addEntity({
-  label: 'insult',
-  options: ['stupid', 'silly'],
-});
+import { EnumEntity } from 'symon';
 
-bot.addEntity({
-  label: 'praise',
-  options: ['smart', 'sweet'],
-});
+bot.addEntity(
+  new EnumEntity({
+    label: 'insult',
+    options: ['stupid', 'silly'],
+  })
+);
+
+bot.addEntity(
+  new EnumEntity{
+    label: 'praise',
+    options: ['smart', 'sweet'],
+  })
+);
 
 bot.addDocument({
   intent: 'chatter/insult',
@@ -105,6 +109,14 @@ shell.start();
 ```
 
 <!-- prettier-ignore-end -->
+
+## Running examples
+
+```bash
+git clone https://github.com/sweetpalma/symon.git && cd symon
+npm run example en
+npm run example uk
+```
 
 ## License
 

@@ -2,22 +2,13 @@
  * Part of a Symon SDK, all rights reserved.
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
-import AsyncLock from 'async-lock';
 import { sample } from 'lodash';
 import { JsonObject } from 'type-fest';
+import AsyncLock from 'async-lock';
+import { detect } from 'tinyld';
+import { Classifier, ClassifierDocument, ClassifierMatch } from './nlp';
+import { Entity, EntityMatch, EntityManager } from './ner';
 import { Routine } from './routine';
-import {
-	Entity,
-	EntityMatch,
-	EntityManager,
-	EntityManagerOptions,
-	Classifier,
-	ClassifierDocument,
-	ClassifierMatch,
-	ClassifierOptions,
-	Stemmer,
-	PorterStemmer,
-} from './nlp';
 
 /**
  * Bot learning sample.
@@ -41,6 +32,7 @@ export interface BotRequest {
  * Bot processing response.
  */
 export interface BotResponse {
+	language: string | null;
 	intent: string | null;
 	answer: string | null;
 	classifications: Array<ClassifierMatch>;
@@ -87,9 +79,7 @@ export type BotRoutine = (
  * Bot options.
  */
 export interface BotOptions {
-	stemmer?: Stemmer;
-	entityManager?: EntityManagerOptions;
-	classifier?: ClassifierOptions;
+	languages?: Array<string>;
 	minThreshold?: number;
 	minDeviation?: number;
 }
@@ -121,11 +111,17 @@ export class Bot {
 	public minDeviation: number;
 
 	constructor(opts: BotOptions = {}) {
-		const stemmer = opts.stemmer ?? PorterStemmer;
-		this.entityManager = new EntityManager({ stemmer, ...opts.entityManager });
-		this.classifier = new Classifier({ stemmer, ...opts.classifier });
+		this.classifier = new Classifier({ languages: opts.languages });
+		this.entityManager = new EntityManager();
 		this.minThreshold = opts.minThreshold ?? 0.75;
 		this.minDeviation = opts.minDeviation ?? 0.05;
+	}
+
+	/**
+	 * Bot supported languages.
+	 */
+	public get languages() {
+		return this.classifier.languages;
 	}
 
 	/**
@@ -148,9 +144,6 @@ export class Bot {
 	 * @param doc - Document to add.
 	 */
 	public addDocument(doc: BotDocument) {
-		if (this.docs.has(doc.intent)) {
-			throw new BotError(`Document with intent "${doc.intent}" already exists.`);
-		}
 		this.classifier.addDocument(doc);
 		this.docs.set(doc.intent, doc);
 	}
@@ -226,11 +219,24 @@ export class Bot {
 	 * @returns Bot response.
 	 */
 	private async runClassifier(req: BotRequest): Promise<BotResponse> {
-		const { entities, template } = this.entityManager.process(req.text);
-		const classifications = await this.classifier.classifyText(template);
 		const userId = req.user.id;
 
-		// Step 1: Determine intent.
+		// Step 1: Extract entities.
+		const { entities, template } = await this.entityManager.process(req.text);
+
+		// Step 2: Run classifier both for template and original text.
+		const [clsOriginal, clsTemplate] = await Promise.all([
+			this.classifier.classifyText(req.text),
+			this.classifier.classifyText(template),
+		]);
+
+		// Step 3: Determine primary classification list by the top score.
+		const classifications =
+			(clsOriginal[0]?.score ?? 0) >= (clsTemplate[0]?.score ?? 0)
+				? clsOriginal
+				: clsTemplate;
+
+		// Step 4: Determine primary intent.
 		const headScore = classifications[0]?.score ?? 0;
 		const nextScore = classifications[1]?.score ?? 0;
 		const deviation = headScore - nextScore;
@@ -239,22 +245,30 @@ export class Bot {
 				? classifications[0]!.intent
 				: null;
 
-		// Step 2: Build a basic response.
+		// Step 5: Determine language.
+		// prettier-ignore
+		const language =
+			classifications[0]?.language ||
+			detect(req.text, { only: this.languages }) ||
+			null;
+
+		// Step 6: Build a basic response.
 		const doc = intent ? this.docs.get(intent) : undefined;
 		const answer = sample(doc?.answers) ?? null;
 		const res: BotResponse = {
+			language,
 			intent,
 			answer,
 			classifications,
 			entities,
 		};
 
-		// Step 3: Determine current user store and active conversation.
+		// Step 7: Determine current user store and active conversation.
 		const convo = this.convos.get(userId);
 		const store = this.stores.get(userId) ?? {};
 		this.stores.set(userId, store);
 
-		// Step 4A: Continue an existing conversation.
+		// Step 8A: Continue an existing conversation.
 		if (convo) {
 			const convoRes = await convo.process(req);
 			if (convoRes && !convo.isDone()) {
@@ -265,7 +279,7 @@ export class Bot {
 			}
 		}
 
-		// Step 4B: Start a new conversation.
+		// Step 8B: Start a new conversation.
 		else if (doc?.handler) {
 			// prettier-ignore
 			const routine: BotRoutine = new Routine((ctx) =>
@@ -284,7 +298,7 @@ export class Bot {
 			return handlerRes || res;
 		}
 
-		// Step 4C: Return a basic response.
+		// Step 8C: Return a basic response.
 		else {
 			return res;
 		}
