@@ -50,15 +50,21 @@ bot.addDocument({
 ### Named Entity Recognition
 
 ```typescript
-bot.addEntity({
-  label: 'insult',
-  options: ['stupid', 'silly'],
-});
+import { EnumEntity } from 'symon';
 
-bot.addEntity({
-  label: 'praise',
-  options: ['smart', 'sweet'],
-});
+bot.addEntity(
+  new EnumEntity({
+    label: 'insult',
+    options: ['stupid', 'silly'],
+  })
+);
+
+bot.addEntity(
+  new EnumEntity{
+    label: 'praise',
+    options: ['smart', 'sweet'],
+  })
+);
 
 bot.addDocument({
   intent: 'chatter/insult',

@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PorterStemmerUk } from './nlp';
+import { EnumEntity } from './ner';
 import { Bot } from './bot';
 
 describe('Bot', () => {
@@ -50,40 +51,85 @@ describe('Bot (English)', () => {
 			answers: ['shame'],
 		});
 		bot.train();
-		expect(await process('you are bad')).toMatchObject({ answer: 'thanks' });
-		expect(await process('you are stupid')).toMatchObject({ answer: 'thanks' });
-		expect(await process('you are good')).toMatchObject({ answer: 'shame' });
-		expect(await process('you are nice')).toMatchObject({ answer: 'shame' });
-		expect(await process('you are a bot')).toMatchObject({ answer: null });
-		expect(await process('you are silly')).toMatchObject({ answer: null });
+		expect(await process('you are bad')).toMatchObject({
+			answer: 'thanks',
+		});
+		expect(await process('you are stupid')).toMatchObject({
+			answer: 'thanks',
+		});
+		expect(await process('you are good')).toMatchObject({
+			answer: 'shame',
+		});
+		expect(await process('you are nice')).toMatchObject({
+			answer: 'shame',
+		});
+		expect(await process('you are a bot')).toMatchObject({
+			answer: null,
+		});
+		expect(await process('you are silly')).toMatchObject({
+			answer: null,
+		});
 	});
 
 	it('classifies entities', async () => {
-		bot.addEntity({
-			label: 'insult',
-			options: ['asshole', 'idiot'],
-		});
-		bot.addEntity({
-			label: 'praise',
-			options: ['gentleman', 'based'],
-		});
+		bot.addEntity(
+			new EnumEntity({
+				label: 'insult',
+				options: ['asshole', 'idiot', 'bad'],
+			})
+		);
+		bot.addEntity(
+			new EnumEntity({
+				label: 'praise',
+				options: ['gentleman', 'based', 'good'],
+			})
+		);
 		bot.addDocument({
 			intent: 'insult',
-			examples: ['you are an %insult%'],
-			answers: ['thanks'],
+			examples: ['you are an %insult%', '%insult%'],
+			answers: ['shame'],
 		});
 		bot.addDocument({
 			intent: 'praise',
-			examples: ['you are an %praise%'],
-			answers: ['shame'],
+			examples: ['you are an %praise%', '%praise%'],
+			answers: ['thanks'],
+		});
+		bot.addDocument({
+			intent: 'hello',
+			examples: ['good evening', 'good afternoon'],
+			answers: ['hello'],
 		});
 		bot.train();
-		expect(await process('you are an asshole')).toMatchObject({ answer: 'thanks' });
-		expect(await process('you are an idiot')).toMatchObject({ answer: 'thanks' });
-		expect(await process('you are a gentleman')).toMatchObject({ answer: 'shame' });
-		expect(await process('you are based')).toMatchObject({ answer: 'shame' });
-		expect(await process('you are a bot')).toMatchObject({ answer: null });
-		expect(await process('you are silly')).toMatchObject({ answer: null });
+		expect(await process('good evening')).toMatchObject({
+			answer: 'hello',
+		});
+		expect(await process('good afternoon')).toMatchObject({
+			answer: 'hello',
+		});
+		expect(await process('you are a gentleman')).toMatchObject({
+			answer: 'thanks',
+		});
+		expect(await process('you are based')).toMatchObject({
+			answer: 'thanks',
+		});
+		expect(await process('you are good')).toMatchObject({
+			answer: 'thanks',
+		});
+		expect(await process('you are an asshole')).toMatchObject({
+			answer: 'shame',
+		});
+		expect(await process('you are an idiot')).toMatchObject({
+			answer: 'shame',
+		});
+		expect(await process('you are bad')).toMatchObject({
+			answer: 'shame',
+		});
+		expect(await process('you are a bot')).toMatchObject({
+			answer: null,
+		});
+		expect(await process('you are silly')).toMatchObject({
+			answer: null,
+		});
 	});
 
 	it('classifies long input (single intent)', async () => {
@@ -141,23 +187,39 @@ describe('Bot (Ukrainian)', () => {
 			answers: ['дякую'],
 		});
 		bot.train();
-		expect(await process('ти мудак')).toMatchObject({ answer: 'пішов нахуй' });
-		expect(await process('ти ідіот')).toMatchObject({ answer: 'пішов нахуй' });
-		expect(await process('ти козак')).toMatchObject({ answer: 'дякую' });
-		expect(await process('ти базюк')).toMatchObject({ answer: 'дякую' });
-		expect(await process('ти бабак')).toMatchObject({ answer: null });
-		expect(await process('ти судак')).toMatchObject({ answer: null });
+		expect(await process('ти мудак')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти ідіот')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти козак')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти базюк')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти бабак')).toMatchObject({
+			answer: null,
+		});
+		expect(await process('ти судак')).toMatchObject({
+			answer: null,
+		});
 	});
 
 	it('classifies entities', async () => {
-		bot.addEntity({
-			label: 'insult',
-			options: ['мудак', 'ідіот'],
-		});
-		bot.addEntity({
-			label: 'praise',
-			options: ['козак', 'базюк'],
-		});
+		bot.addEntity(
+			new EnumEntity({
+				label: 'insult',
+				options: ['мудак', 'ідіот', 'поганий'],
+			})
+		);
+		bot.addEntity(
+			new EnumEntity({
+				label: 'praise',
+				options: ['козак', 'базюк', 'добрий'],
+			})
+		);
 		bot.addDocument({
 			intent: 'insult',
 			examples: ['ти %insult%', '%insult%'],
@@ -168,13 +230,42 @@ describe('Bot (Ukrainian)', () => {
 			examples: ['ти %praise%', '%praise%'],
 			answers: ['дякую'],
 		});
+		bot.addDocument({
+			intent: 'hello',
+			examples: ['добрий вечір', 'добрий день'],
+			answers: ['привіт'],
+		});
 		bot.train();
-		expect(await process('ти мудак')).toMatchObject({ answer: 'пішов нахуй' });
-		expect(await process('ти ідіот')).toMatchObject({ answer: 'пішов нахуй' });
-		expect(await process('ти козак')).toMatchObject({ answer: 'дякую' });
-		expect(await process('ти базюк')).toMatchObject({ answer: 'дякую' });
-		expect(await process('ти бабак')).toMatchObject({ answer: null });
-		expect(await process('ти дурак')).toMatchObject({ answer: null });
+		expect(await process('добрий день')).toMatchObject({
+			answer: 'привіт',
+		});
+		expect(await process('добрий вечір')).toMatchObject({
+			answer: 'привіт',
+		});
+		expect(await process('ти поганий')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти мудак')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти ідіот')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти добрий')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти козак')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти базюк')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти бабак')).toMatchObject({
+			answer: null,
+		});
+		expect(await process('ти дурак')).toMatchObject({
+			answer: null,
+		});
 	});
 
 	it('handles simple routines', async () => {
@@ -189,12 +280,24 @@ describe('Bot (Ukrainian)', () => {
 			handler: async (ctx) => await ctx.say({ answer: 'дякую' }),
 		});
 		bot.train();
-		expect(await process('ти мудак')).toMatchObject({ answer: 'пішов нахуй' });
-		expect(await process('ти ідіот')).toMatchObject({ answer: 'пішов нахуй' });
-		expect(await process('ти козак')).toMatchObject({ answer: 'дякую' });
-		expect(await process('ти базюк')).toMatchObject({ answer: 'дякую' });
-		expect(await process('ти бабак')).toMatchObject({ answer: null });
-		expect(await process('ти судак')).toMatchObject({ answer: null });
+		expect(await process('ти мудак')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти ідіот')).toMatchObject({
+			answer: 'пішов нахуй',
+		});
+		expect(await process('ти козак')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти базюк')).toMatchObject({
+			answer: 'дякую',
+		});
+		expect(await process('ти бабак')).toMatchObject({
+			answer: null,
+		});
+		expect(await process('ти судак')).toMatchObject({
+			answer: null,
+		});
 	});
 
 	it('classifies long input (single intent)', async () => {

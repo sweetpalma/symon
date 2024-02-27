@@ -7,10 +7,9 @@
 export * from 'natural/lib/natural/tokenizers';
 export * from 'natural/lib/natural/stemmers';
 
-// Export generic classifier, language detector and entity manager.
+// Export generic classifier and language detector.
 export * from './language';
 export * from './classifier';
-export * from './entity';
 
 // Export improved tokenizer.
 export { WordTokenizer } from './tokenizer';

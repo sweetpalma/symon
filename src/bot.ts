@@ -6,11 +6,8 @@ import AsyncLock from 'async-lock';
 import { sample } from 'lodash';
 import { JsonObject } from 'type-fest';
 import { Routine } from './routine';
+import { Entity, EntityMatch, EntityManager } from './ner';
 import {
-	Entity,
-	EntityMatch,
-	EntityManager,
-	EntityManagerOptions,
 	Classifier,
 	ClassifierDocument,
 	ClassifierMatch,
@@ -88,7 +85,7 @@ export type BotRoutine = (
  */
 export interface BotOptions {
 	stemmer?: Stemmer;
-	entityManager?: EntityManagerOptions;
+	// entityManager?: EntityManagerOptions;
 	classifier?: ClassifierOptions;
 	minThreshold?: number;
 	minDeviation?: number;
@@ -122,8 +119,8 @@ export class Bot {
 
 	constructor(opts: BotOptions = {}) {
 		const stemmer = opts.stemmer ?? PorterStemmer;
-		this.entityManager = new EntityManager({ stemmer, ...opts.entityManager });
 		this.classifier = new Classifier({ stemmer, ...opts.classifier });
+		this.entityManager = new EntityManager();
 		this.minThreshold = opts.minThreshold ?? 0.75;
 		this.minDeviation = opts.minDeviation ?? 0.05;
 	}
@@ -226,11 +223,22 @@ export class Bot {
 	 * @returns Bot response.
 	 */
 	private async runClassifier(req: BotRequest): Promise<BotResponse> {
-		const { entities, template } = this.entityManager.process(req.text);
-		const classifications = await this.classifier.classifyText(template);
+		const { entities, template } = await this.entityManager.process(req.text);
 		const userId = req.user.id;
 
-		// Step 1: Determine intent.
+		// Step 1: Run classifier both for template and original text.
+		const [clsOriginal, clsTemplate] = await Promise.all([
+			this.classifier.classifyText(req.text),
+			this.classifier.classifyText(template),
+		]);
+
+		// Step 2: Determine primary classification list by the top score.
+		const classifications =
+			(clsOriginal[0]?.score ?? 0) >= (clsTemplate[0]?.score ?? 0)
+				? clsOriginal
+				: clsTemplate;
+
+		// Step 3: Determine primary intent.
 		const headScore = classifications[0]?.score ?? 0;
 		const nextScore = classifications[1]?.score ?? 0;
 		const deviation = headScore - nextScore;
@@ -239,7 +247,7 @@ export class Bot {
 				? classifications[0]!.intent
 				: null;
 
-		// Step 2: Build a basic response.
+		// Step 4: Build a basic response.
 		const doc = intent ? this.docs.get(intent) : undefined;
 		const answer = sample(doc?.answers) ?? null;
 		const res: BotResponse = {
@@ -249,12 +257,12 @@ export class Bot {
 			entities,
 		};
 
-		// Step 3: Determine current user store and active conversation.
+		// Step 5: Determine current user store and active conversation.
 		const convo = this.convos.get(userId);
 		const store = this.stores.get(userId) ?? {};
 		this.stores.set(userId, store);
 
-		// Step 4A: Continue an existing conversation.
+		// Step 6A: Continue an existing conversation.
 		if (convo) {
 			const convoRes = await convo.process(req);
 			if (convoRes && !convo.isDone()) {
@@ -265,7 +273,7 @@ export class Bot {
 			}
 		}
 
-		// Step 4B: Start a new conversation.
+		// Step 6B: Start a new conversation.
 		else if (doc?.handler) {
 			// prettier-ignore
 			const routine: BotRoutine = new Routine((ctx) =>
@@ -284,7 +292,7 @@ export class Bot {
 			return handlerRes || res;
 		}
 
-		// Step 4C: Return a basic response.
+		// Step 6C: Return a basic response.
 		else {
 			return res;
 		}

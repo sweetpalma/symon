@@ -131,22 +131,22 @@ export class Classifier {
 			throw new ClassifierError('Classifier is not trained.');
 		}
 
-		// Step 1: Perform basic classification.
+		// Step 1: Classify, then filter out meaningless classifications.
 		const classifications = (await this.classifierQueue.push(input))
 			.map<ClassifierMatch>((cls) => {
 				const score = round(cls.value, 2);
 				return { ...this.parseLabel(cls.label), score };
 			})
 			.filter((cls) => {
-				return cls.score > 0;
+				return cls.score >= 0.5;
 			});
 
-		// Step 2A: Return single classification.
+		// Step 3A: Return single classification.
 		if (classifications.length <= 1) {
 			return classifications;
 		}
 
-		// Step 2B: Remove mean classifications and return.
+		// Step 3B: Remove mean classifications and return.
 		const mean = meanBy(classifications, 'score');
 		return classifications.filter((cls) => {
 			return cls.score > mean;
@@ -173,11 +173,11 @@ export class Classifier {
 				return sentenceClassifications.length > 0;
 			})
 			.reduce((acc, curr) => {
-				const grouped = groupBy([...acc, ...curr], (cls) => {
+				const groupedByLabel = groupBy([...acc, ...curr], (cls) => {
 					return this.buildLabel(cls.intent, cls.language);
 				});
-				return Object.entries(grouped).map(([label, sentenceClassifications]) => {
-					const score = sumBy(sentenceClassifications, 'score');
+				return Object.entries(groupedByLabel).map(([label, groupedClassifications]) => {
+					const score = sumBy(groupedClassifications, 'score');
 					return { ...this.parseLabel(label), score };
 				});
 			}, []);
