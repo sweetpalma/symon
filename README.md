@@ -113,7 +113,7 @@ shell.start();
 ## Running examples
 
 ```bash
-git clone https://github.com/sweetpalma/symon.git && cd symon
+git clone https://github.com/sweetpalma/symon.git && cd symon && npm install
 npm run example en
 npm run example uk
 ```

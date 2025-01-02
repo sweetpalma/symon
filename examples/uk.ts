@@ -46,6 +46,15 @@ bot.addDocument({
 	answers: ['Дякую!'],
 });
 
+bot.addDocument({
+	intent: 'random',
+	examples: ['випадкове число', 'скажи рандомне число'],
+	handler: async (ctx) => {
+		const number = Math.floor(Math.random() * 5);
+		await ctx.say({ answer: number.toString() });
+	},
+});
+
 bot.addMiddleware((req, res) => {
 	if (!res.answer) {
 		res.answer = `Вибач, я не розумію.`;

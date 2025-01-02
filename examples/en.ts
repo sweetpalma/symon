@@ -46,6 +46,15 @@ bot.addDocument({
 	answers: ['Thanks!'],
 });
 
+bot.addDocument({
+	intent: 'random',
+	examples: ['pick a random number', 'say a random number'],
+	handler: async (ctx) => {
+		const number = Math.floor(Math.random() * 5);
+		await ctx.say({ answer: number.toString() });
+	},
+});
+
 bot.addMiddleware((req, res) => {
 	if (!res.answer) {
 		res.answer = `Sorry, I don't understand you.`;
