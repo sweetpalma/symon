@@ -49,7 +49,6 @@ export class Classifier {
 	private stemmer: MultiStemmer;
 	private classifier: LogisticRegressionClassifier;
 	private classifierQueue: Queue<string, Array<ApparatusClassification>>;
-	private classifierReady: boolean = false;
 
 	// prettier-ignore
 	constructor(opts: ClassifierOptions = {}) {
@@ -81,7 +80,7 @@ export class Classifier {
 	 * @remarks Untrained classifier can't be used.
 	 */
 	public get isTrained() {
-		return this.classifierReady;
+		return this.classifier.lastAdded > 0;
 	}
 
 	/**
@@ -104,15 +103,34 @@ export class Classifier {
 	}
 
 	/**
+	 * Saves classifier state and returns it.
+	 * @returns Classifier state.
+	 */
+	public save() {
+		return JSON.stringify(this.classifier);
+	}
+
+	/**
+	 * Loads classifier state.
+	 * @param state - Classifier state.
+	 * @returns Classifier.
+	 */
+	public load(state: string) {
+		const { stemmer } = this;
+		this.classifier = LogisticRegressionClassifier.restore(JSON.parse(state), stemmer);
+		return this;
+	}
+
+	/**
 	 * Trains the classifier.
 	 * @remarks Running this method is synchronous and may take some time.
 	 */
 	public train() {
 		if (this.isEmpty) {
 			throw new ClassifierError('Empty classifier could not be trained.');
+		} else {
+			this.classifier.train();
 		}
-		this.classifier.train();
-		this.classifierReady = true;
 	}
 
 	/**

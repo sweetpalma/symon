@@ -6,12 +6,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Classifier } from './classifier';
 
 describe('Classifier', () => {
-	it('fails to train a classifier without documents', () => {
+	it('fails to train a classifier without documents', async () => {
 		const msg = 'Empty classifier could not be trained.';
 		expect(() => new Classifier().train()).toThrow(msg);
 	});
 
-	it('fails to accept an empty document', () => {
+	it('fails to accept an empty document', async () => {
 		const msg = 'No examples were provided.';
 		expect(() => new Classifier().addDocument({ intent: '', examples: [] })).toThrow(msg);
 	});
@@ -19,6 +19,24 @@ describe('Classifier', () => {
 	it('fails to process a text using an untrained classifier', async () => {
 		const msg = 'Classifier is not trained.';
 		expect(() => new Classifier().classify('test')).rejects.toThrow(msg);
+	});
+
+	it('is serializable', async () => {
+		const original = new Classifier();
+		original.addDocument({
+			intent: 'a',
+			examples: ['a'],
+		});
+		original.addDocument({
+			intent: 'b',
+			examples: ['b'],
+		});
+		original.train();
+		expect(await original.classifyText('a')).toMatchObject([{ intent: 'a' }]);
+		expect(await original.classifyText('b')).toMatchObject([{ intent: 'b' }]);
+		const restored = new Classifier().load(original.save());
+		expect(await restored.classifyText('a')).toMatchObject([{ intent: 'a' }]);
+		expect(await restored.classifyText('b')).toMatchObject([{ intent: 'b' }]);
 	});
 });
 

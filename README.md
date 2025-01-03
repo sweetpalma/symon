@@ -13,14 +13,13 @@ Minimalistic chatbot framework for humans.
 
 ## Getting Started
 
-<!-- prettier-ignore-start -->
-
 ### Installation
+
 ```bash
 npm install symon
 ```
 
-###  Configuration
+### Configuration
 
 ```typescript
 import { Bot } from 'symon';
@@ -107,8 +106,6 @@ import { Shell } from 'symon';
 const shell = new Shell({ bot });
 shell.start();
 ```
-
-<!-- prettier-ignore-end -->
 
 ## Running examples
 
