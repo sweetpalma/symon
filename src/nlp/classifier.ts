@@ -4,7 +4,7 @@
  */
 import { round, groupBy, meanBy, sumBy } from 'lodash';
 import { ApparatusClassification, LogisticRegressionClassifier } from 'natural';
-import { queueAsPromised as Queue, promise as createQueue } from 'fastq';
+import { default as nextTick } from 'next-tick';
 import { MultiStemmer } from './stemmer';
 
 /**
@@ -48,16 +48,13 @@ export class ClassifierError extends Error {
 export class Classifier {
 	private stemmer: MultiStemmer;
 	private classifier: LogisticRegressionClassifier;
-	private classifierQueue: Queue<string, Array<ApparatusClassification>>;
 
-	// prettier-ignore
 	constructor(opts: ClassifierOptions = {}) {
 		this.stemmer = new MultiStemmer({ languages: opts.languages });
 		this.classifier = new LogisticRegressionClassifier(this.stemmer);
-		this.classifier.setOptions({ keepStops: opts.keepStops ?? true });
-		this.classifierQueue = createQueue((input) => Promise.resolve().then(() => {
-			return this.classifier.getClassifications(input);
-		}), 1);
+		this.classifier.setOptions({
+			keepStops: opts.keepStops ?? true,
+		});
 	}
 
 	/**
@@ -144,8 +141,20 @@ export class Classifier {
 			throw new ClassifierError('Classifier is not trained.');
 		}
 
-		// Step 1: Classify, then filter out meaningless classifications.
-		const classifications = (await this.classifierQueue.push(text))
+		// Step 1: Run classifier.
+		const apparatusClassifications = await new Promise<Array<ApparatusClassification>>(
+			(resolve, reject) =>
+				nextTick(() => {
+					try {
+						resolve(this.classifier.getClassifications(text));
+					} catch (err) {
+						reject(err);
+					}
+				})
+		);
+
+		// Step 2: Filter meaningless classifications.
+		const classifications = apparatusClassifications
 			.map<ClassifierMatch>((cls) => {
 				const score = round(cls.value, 2);
 				return { ...this.parseLabel(cls.label), score };
