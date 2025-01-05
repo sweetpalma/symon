@@ -47,11 +47,34 @@ bot.addDocument({
 });
 
 bot.addDocument({
+	intent: 'response/yes',
+	examples: ['yes', 'yeah'],
+});
+
+bot.addDocument({
+	intent: 'response/no',
+	examples: ['no', 'nope'],
+});
+
+bot.addDocument({
 	intent: 'random',
 	examples: ['pick a random number', 'say a random number'],
 	handler: async (ctx) => {
 		const number = Math.floor(Math.random() * 5);
 		await ctx.say({ answer: number.toString() });
+	},
+});
+
+bot.addDocument({
+	intent: 'suicide',
+	examples: ['stop yourself', 'kill yourself'],
+	handler: async (ctx) => {
+		const { intent } = await ctx.classify(await ctx.ask({ answer: 'Really?' }));
+		if (intent === 'response/yes') {
+			process.exit(0);
+		} else {
+			await ctx.say({ answer: 'Hooray!' });
+		}
 	},
 });
 

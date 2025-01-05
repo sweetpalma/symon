@@ -398,6 +398,44 @@ describe('Bot (Ukrainian)', () => {
 			answer: 'Бувай!',
 		});
 	});
+
+	it('handles nested classifications', async () => {
+		bot.addDocument({
+			intent: 'response/yes',
+			examples: ['так', 'йес', 'да'],
+		});
+		bot.addDocument({
+			intent: 'response/no',
+			examples: ['ні', 'нє', 'ноу'],
+		});
+		bot.addDocument({
+			intent: 'suicide',
+			examples: ['запетлися'],
+			handler: async (ctx) => {
+				const { intent } = await ctx.classify(await ctx.ask({ answer: 'Точно?' }));
+				switch (intent) {
+					case 'response/yes': {
+						await ctx.say({ answer: '* помирає *' });
+						break;
+					}
+					case 'response/no': {
+						await ctx.say({ answer: 'Ура!' });
+						break;
+					}
+					default: {
+						await ctx.say({ answer: 'Я не розумію...' });
+					}
+				}
+			},
+		});
+		bot.train();
+		expect(await process('Запетлися')).toMatchObject({ answer: 'Точно?' });
+		expect(await process('Ні')).toMatchObject({ answer: 'Ура!' });
+		expect(await process('Запетлися')).toMatchObject({ answer: 'Точно?' });
+		expect(await process('Йес')).toMatchObject({ answer: '* помирає *' });
+		expect(await process('Запетлися')).toMatchObject({ answer: 'Точно?' });
+		expect(await process('Хрю')).toMatchObject({ answer: 'Я не розумію...' });
+	});
 });
 
 describe('Bot (Multi-language)', () => {

@@ -89,6 +89,33 @@ bot.addDocument({
 });
 ```
 
+### Dialogues
+
+```typescript
+bot.addDocument({
+  intent: 'response/yes',
+  examples: ['yes', 'yeah'],
+});
+
+bot.addDocument({
+  intent: 'response/no',
+  examples: ['no', 'nope'],
+});
+
+bot.addDocument({
+  intent: 'suicide',
+  examples: ['stop yourself', 'kill yourself'],
+  handler: async (ctx) => {
+    const { intent } = await ctx.classify(await ctx.ask({ answer: 'Really?' }));
+    if (intent === 'response/yes') {
+      process.exit(0);
+    } else {
+      await ctx.say({ answer: 'Hooray!' });
+    }
+  },
+});
+```
+
 ### Middlewares
 
 ```typescript

@@ -48,6 +48,7 @@ export interface BotContext {
 	classifications: Array<ClassifierMatch>;
 	entities: Array<EntityMatch>;
 	store: JsonObject;
+	classify: (req: BotRequest) => Promise<BotResponse>;
 	ask: (res: Partial<BotResponse>) => Promise<BotRequest>;
 	say: (res: Partial<BotResponse>) => Promise<void>;
 }
@@ -183,15 +184,63 @@ export class Bot {
 	}
 
 	/**
-	 * Handles given request and returns bot response.
-	 * @param req - Request to process.
+	 * Performs a dry classifier run for a given request without giving an answer.
+	 * @remarks This method does not trigger any handlers or middleware functions.
+	 * @params req - Bot request.
+	 * @returns Bot response.
+	 */
+	public async classify(req: BotRequest): Promise<BotResponse> {
+		const { entities, template } = await this.entityManager.process(req.text);
+
+		// Step 1: Run classifier both for template and original text.
+		const [clsOriginal, clsTemplate] = await Promise.all([
+			this.classifier.classifyText(req.text),
+			this.classifier.classifyText(template),
+		]);
+
+		// Step 2: Determine primary classification list by the top score.
+		const classifications =
+			(clsOriginal[0]?.score ?? 0) >= (clsTemplate[0]?.score ?? 0)
+				? clsOriginal
+				: clsTemplate;
+
+		// Step 3: Determine intent.
+		const headScore = classifications[0]?.score ?? 0;
+		const nextScore = classifications[1]?.score ?? 0;
+		const deviation = headScore - nextScore;
+		const intent =
+			headScore >= this.minThreshold && deviation >= this.minDeviation
+				? classifications[0]!.intent
+				: null;
+
+		// Step 4: Determine language.
+		// prettier-ignore
+		const language =
+			classifications[0]?.language ||
+			detect(req.text, { only: this.languages }) ||
+			null;
+
+		// Step 5 Return a basic response.
+		return {
+			language,
+			intent,
+			answer: null,
+			classifications,
+			entities,
+		};
+	}
+
+	/**
+	 * Processes given request and gives an appropriate answer.
+	 * @param req - Bot request.
 	 * @returns Bot response.
 	 */
 	public async process(req: BotRequest): Promise<BotResponse> {
 		const lockId = req.user.id;
 		return this.convoLock.acquire(lockId, async () => {
-			const res = await this.runClassifier(req);
-			await this.runMiddleware(req, res);
+			const res = await this.classify(req);
+			await this.processAnswer(req, res);
+			await this.processMiddleware(req, res);
 			return res;
 		});
 	}
@@ -201,7 +250,7 @@ export class Bot {
 	 * @param req - Request to process.
 	 * @param res - Response to process.
 	 */
-	private async runMiddleware(req: BotRequest, res: BotResponse) {
+	private async processMiddleware(req: BotRequest, res: BotResponse) {
 		for (const middleware of this.middlewares) {
 			let stop = false;
 			await middleware.call(this, req, res, () => {
@@ -218,89 +267,47 @@ export class Bot {
 	 * @param req - Request to process.
 	 * @returns Bot response.
 	 */
-	private async runClassifier(req: BotRequest): Promise<BotResponse> {
+	private async processAnswer(req: BotRequest, res: BotResponse) {
 		const userId = req.user.id;
 
-		// Step 1: Extract entities.
-		const { entities, template } = await this.entityManager.process(req.text);
+		// Step 1: Determine an active document and give a simple answer.
+		const doc = res.intent ? this.docs.get(res.intent) : null;
 
-		// Step 2: Run classifier both for template and original text.
-		const [clsOriginal, clsTemplate] = await Promise.all([
-			this.classifier.classifyText(req.text),
-			this.classifier.classifyText(template),
-		]);
-
-		// Step 3: Determine primary classification list by the top score.
-		const classifications =
-			(clsOriginal[0]?.score ?? 0) >= (clsTemplate[0]?.score ?? 0)
-				? clsOriginal
-				: clsTemplate;
-
-		// Step 4: Determine primary intent.
-		const headScore = classifications[0]?.score ?? 0;
-		const nextScore = classifications[1]?.score ?? 0;
-		const deviation = headScore - nextScore;
-		const intent =
-			headScore >= this.minThreshold && deviation >= this.minDeviation
-				? classifications[0]!.intent
-				: null;
-
-		// Step 5: Determine language.
-		// prettier-ignore
-		const language =
-			classifications[0]?.language ||
-			detect(req.text, { only: this.languages }) ||
-			null;
-
-		// Step 6: Build a basic response.
-		const doc = intent ? this.docs.get(intent) : undefined;
-		const answer = sample(doc?.answers) ?? null;
-		const res: BotResponse = {
-			language,
-			intent,
-			answer,
-			classifications,
-			entities,
-		};
-
-		// Step 7: Determine current user store and active conversation.
+		// Step 2A: Continue an active conversation.
 		const convo = this.convos.get(userId);
-		const store = this.stores.get(userId) ?? {};
-		this.stores.set(userId, store);
-
-		// Step 8A: Continue an existing conversation.
 		if (convo) {
-			const convoRes = await convo.process(req);
-			if (convoRes && !convo.isDone()) {
-				return convoRes;
+			const convoResponse = await convo.process(req);
+			if (convoResponse && !convo.isDone()) {
+				Object.assign(res, convoResponse);
 			} else {
 				this.convos.delete(userId);
-				return this.runClassifier(req);
+				this.processAnswer(req, res);
 			}
 		}
 
-		// Step 8B: Start a new conversation.
-		else if (doc?.handler) {
-			// prettier-ignore
-			const routine: BotRoutine = new Routine((ctx) =>
+		// Step 2B: Give a simple answer.
+		else if (doc && doc.answers) {
+			res.answer = sample(doc.answers)!;
+		}
+
+		// Step 2C: Start a new conversation.
+		else if (doc && doc.handler) {
+			const store = this.stores.get(userId) ?? {};
+			const convo: BotRoutine = new Routine((ctx) =>
 				doc.handler!.call(this, {
 					bot: this,
 					req,
-					classifications,
-					entities,
 					store,
-					say: async (upd) => await ctx.yield({ ...res, ...upd }) && undefined,
-					ask: async (upd) => await ctx.yield({ ...res, ...upd }),
+					classifications: res.classifications,
+					entities: res.entities,
+					classify: async (req) => this.classify(req),
+					say: async (upd) => (await ctx.yield({ ...res, ...upd })) && undefined,
+					ask: async (upd) => (await ctx.yield({ ...res, ...upd })), // prettier-ignore
 				})
 			);
-			this.convos.set(userId, routine);
-			const handlerRes = await routine.process(req);
-			return handlerRes || res;
-		}
-
-		// Step 8C: Return a basic response.
-		else {
-			return res;
+			this.convos.set(userId, convo);
+			this.stores.set(userId, store);
+			this.processAnswer(req, res);
 		}
 	}
 }
