@@ -57,7 +57,7 @@ bot.addEntity(
 );
 
 bot.addEntity(
-  new EnumEntity{
+  new EnumEntity({
     label: 'praise',
     options: ['smart', 'sweet'],
   })
@@ -66,7 +66,7 @@ bot.addEntity(
 bot.addDocument({
   intent: 'chatter/insult',
   examples: ['you are %insult%', '%insult%'],
-  answers: ['You make me sad...'],
+  answers: ['No, you are {{ insult }}!'],
 });
 
 bot.addDocument({
@@ -103,8 +103,8 @@ bot.addDocument({
 });
 
 bot.addDocument({
-  intent: 'suicide',
-  examples: ['stop yourself', 'kill yourself'],
+  intent: 'terminate',
+  examples: ['exit', 'stop yourself', 'kill yourself'],
   handler: async (ctx) => {
     const { intent } = await ctx.classify(await ctx.ask({ answer: 'Really?' }));
     if (intent === 'response/yes') {

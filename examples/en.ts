@@ -10,15 +10,15 @@ const bot = new Bot({
 
 bot.addEntity(
 	new EnumEntity({
-		label: 'praise',
-		options: ['smart', 'sweet', 'good'],
+		label: 'insult',
+		options: ['stupid', 'silly'],
 	})
 );
 
 bot.addEntity(
 	new EnumEntity({
-		label: 'insult',
-		options: ['stupid', 'silly', 'bad'],
+		label: 'praise',
+		options: ['smart', 'sweet'],
 	})
 );
 
@@ -37,12 +37,12 @@ bot.addDocument({
 bot.addDocument({
 	intent: 'chatter/insult',
 	examples: ['you are %insult%', '%insult%'],
-	answers: ['Sorry...'],
+	answers: ['No, you are {{ insult }}!'],
 });
 
 bot.addDocument({
 	intent: 'chatter/praise',
-	examples: ['you are %praise%', '%praise%'],
+	examples: ['you are %praise%', '%insult%'],
 	answers: ['Thanks!'],
 });
 
@@ -66,8 +66,8 @@ bot.addDocument({
 });
 
 bot.addDocument({
-	intent: 'suicide',
-	examples: ['stop yourself', 'kill yourself'],
+	intent: 'terminate',
+	examples: ['exit', 'stop yourself', 'kill yourself'],
 	handler: async (ctx) => {
 		const { intent } = await ctx.classify(await ctx.ask({ answer: 'Really?' }));
 		if (intent === 'response/yes') {
