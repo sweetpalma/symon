@@ -2,10 +2,12 @@
  * Part of a Symon SDK, all rights reserved.
  * This code is licensed under MIT LICENSE, check LICENSE file for details.
  */
-import { sample } from 'lodash';
-import { JsonObject } from 'type-fest';
-import AsyncLock from 'async-lock';
 import { detect } from 'tinyld';
+import { sample, groupBy, mapValues } from 'lodash';
+import { default as AsyncLock } from 'async-lock';
+import { default as Mustache } from 'mustache';
+import { JsonObject } from 'type-fest';
+
 import { Classifier, ClassifierDocument, ClassifierMatch } from './nlp';
 import { Entity, EntityMatch, EntityManager } from './ner';
 import { Routine } from './routine';
@@ -241,12 +243,13 @@ export class Bot {
 			const res = await this.classify(req);
 			await this.processAnswer(req, res);
 			await this.processMiddleware(req, res);
+			await this.processTemplate(req, res);
 			return res;
 		});
 	}
 
 	/**
-	 * Runs middleware pipeline for given parameters.
+	 * Runs middleware step for given parameters.
 	 * @param req - Request to process.
 	 * @param res - Response to process.
 	 */
@@ -263,14 +266,30 @@ export class Bot {
 	}
 
 	/**
-	 * Classifies given request, processes it and returns bot response.
+	 * Runs template step for given parameters.
 	 * @param req - Request to process.
-	 * @returns Bot response.
+	 * @param res - Response to process.
+	 */
+	private async processTemplate(req: BotRequest, res: BotResponse) {
+		if (!res.answer) {
+			return;
+		}
+		const entities = mapValues(groupBy(res.entities, 'label'), (entityGroup) => {
+			const sources = entityGroup.map((entity) => entity.source);
+			return sources.length > 1 ? sources : (sources[0] as string);
+		});
+		res.answer = Mustache.render(res.answer, entities);
+	}
+
+	/**
+	 * Runs answer processing step for given parameters.
+	 * @param req - Request to process.
+	 * @param res - Response to process.
 	 */
 	private async processAnswer(req: BotRequest, res: BotResponse) {
 		const userId = req.user.id;
 
-		// Step 1: Determine an active document and give a simple answer.
+		// Step 1: Determine an active document.
 		const doc = res.intent ? this.docs.get(res.intent) : null;
 
 		// Step 2A: Continue an active conversation.

@@ -37,7 +37,7 @@ bot.addDocument({
 bot.addDocument({
 	intent: 'chatter/insult',
 	examples: ['Ти %insult%', '%insult%'],
-	answers: ['Йди нахуй.'],
+	answers: ['Сам ти {{ insult }}!'],
 });
 
 bot.addDocument({
@@ -66,8 +66,8 @@ bot.addDocument({
 });
 
 bot.addDocument({
-	intent: 'suicide',
-	examples: ['запетлися', 'вбий себе'],
+	intent: 'terminate',
+	examples: ['запетлися', 'вбий себе', 'вийти'],
 	handler: async (ctx) => {
 		const { intent } = await ctx.classify(await ctx.ask({ answer: 'Справді?' }));
 		if (intent === 'response/yes') {

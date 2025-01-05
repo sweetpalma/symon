@@ -81,7 +81,7 @@ describe('Bot (English)', () => {
 		bot.addDocument({
 			intent: 'insult',
 			examples: ['you are an %insult%', '%insult%'],
-			answers: ['shame'],
+			answers: ['no, YOU are {{ insult }}'],
 		});
 		bot.addDocument({
 			intent: 'praise',
@@ -110,13 +110,13 @@ describe('Bot (English)', () => {
 			answer: 'thanks',
 		});
 		expect(await process('you are an asshole')).toMatchObject({
-			answer: 'shame',
+			answer: 'no, YOU are asshole',
 		});
 		expect(await process('you are an idiot')).toMatchObject({
-			answer: 'shame',
+			answer: 'no, YOU are idiot',
 		});
 		expect(await process('you are bad')).toMatchObject({
-			answer: 'shame',
+			answer: 'no, YOU are bad',
 		});
 		expect(await process('you are a bot')).toMatchObject({
 			answer: null,
@@ -217,7 +217,7 @@ describe('Bot (Ukrainian)', () => {
 		bot.addDocument({
 			intent: 'insult',
 			examples: ['ти %insult%', '%insult%'],
-			answers: ['пішов нахуй'],
+			answers: ['сам ти {{ insult }}'],
 		});
 		bot.addDocument({
 			intent: 'praise',
@@ -237,13 +237,13 @@ describe('Bot (Ukrainian)', () => {
 			answer: 'привіт',
 		});
 		expect(await process('ти поганий')).toMatchObject({
-			answer: 'пішов нахуй',
+			answer: 'сам ти поганий',
 		});
 		expect(await process('ти мудак')).toMatchObject({
-			answer: 'пішов нахуй',
+			answer: 'сам ти мудак',
 		});
 		expect(await process('ти ідіот')).toMatchObject({
-			answer: 'пішов нахуй',
+			answer: 'сам ти ідіот',
 		});
 		expect(await process('ти добрий')).toMatchObject({
 			answer: 'дякую',
@@ -409,7 +409,7 @@ describe('Bot (Ukrainian)', () => {
 			examples: ['ні', 'нє', 'ноу'],
 		});
 		bot.addDocument({
-			intent: 'suicide',
+			intent: 'terminate',
 			examples: ['запетлися'],
 			handler: async (ctx) => {
 				const { intent } = await ctx.classify(await ctx.ask({ answer: 'Точно?' }));
